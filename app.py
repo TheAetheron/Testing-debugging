@@ -1,7 +1,9 @@
 import streamlit as st
 import joblib
-import pandas as pd
 
+# -------------------------------
+# Load model & vectorizer
+# -------------------------------
 @st.cache_resource
 def load_model():
     model = joblib.load("lang_nb_model.pkl")
@@ -11,85 +13,76 @@ def load_model():
 model, vectorizer = load_model()
 
 
-def smooth_predictions(results, strong_threshold=0.6, weak_threshold=0.05):
-    raw_preds = []
-    for token, lang_probs in results:
-        if lang_probs:
-            raw_preds.append(lang_probs[0][0])
-        else:
-            raw_preds.append(None)
-
-    final_preds = []
-
-    for i, (token, lang_probs) in enumerate(results):
-        if lang_probs and lang_probs[0][1] >= strong_threshold:
-            final_preds.append(lang_probs[0][0])
-            continue
-
-        neighbor_langs = []
-        if i > 0:
-            neighbor_langs.append(raw_preds[i - 1])
-        if i < len(results) - 1:
-            neighbor_langs.append(raw_preds[i + 1])
-
-        neighbor_langs = [x for x in neighbor_langs if x is not None]
-
-        resolved = None
-        for nlang in neighbor_langs:
-            for lang, prob in lang_probs:
-                if lang == nlang and prob >= weak_threshold:
-                    resolved = lang
-                    break
-            if resolved:
-                break
-
-        final_preds.append(resolved if resolved else lang_probs[0][0])
-
-    return list(zip([t for t, _ in results], final_preds))
-
-
-def detect_words(text, threshold=0.10):
+# -------------------------------
+# Detection logic
+# -------------------------------
+def detect_possible_languages(
+    text,
+    threshold=0.25,
+    min_len=3
+):
     words = text.split()
+
     X = vectorizer.transform(words)
     probs = model.predict_proba(X)
     classes = model.classes_
 
     results = []
+
     for i, word in enumerate(words):
-        word_probs = []
-        for lang, p in zip(classes, probs[i]):
-            if p >= threshold:
-                word_probs.append((lang, float(p)))
-        word_probs.sort(key=lambda x: x[1], reverse=True)
-        results.append((word, word_probs))
+        # Reject very short or non-alphabetic tokens
+        if len(word) < min_len or not word.isalpha():
+            results.append((word, ["Unknown"]))
+            continue
+
+        possible_langs = [
+            lang
+            for lang, p in zip(classes, probs[i])
+            if p >= threshold
+        ]
+
+        if not possible_langs:
+            possible_langs = ["Unknown"]
+
+        results.append((word, possible_langs))
 
     return results
 
 
-def detect_with_smoothing(text):
-    results = detect_words(text)
-    return smooth_predictions(results)
+# -------------------------------
+# Streamlit UI
+# -------------------------------
+st.set_page_config(
+    page_title="Multilingual Language Analyzer",
+    layout="centered"
+)
 
-
-# UI
-
-st.set_page_config(page_title="Multilingual Language Detection", layout="centered")
-
-st.title("🌍 Multilingual Language Detection")
-st.write("Detect language **per word** using a Naive Bayes model.")
+st.title("🌍 Multilingual Language Analyzer")
+st.write(
+    "This app analyzes each word and outputs **all possible languages** "
+    "based on character-level probabilities. "
+    "Words that do not match any learned language are labeled **Unknown**."
+)
 
 text_input = st.text_input(
     "Enter text",
-    placeholder="i eat にちは sapi"
+    placeholder="Saya is naive bayes roeireirpepre"
 )
 
-if st.button("Detect Language"):
+if st.button("Analyze"):
     if text_input.strip() == "":
         st.warning("Please enter some text.")
     else:
-        output = detect_with_smoothing(text_input)
+        results = detect_possible_languages(text_input)
 
-        st.subheader("Detection Result")
+        st.subheader("Results")
 
-        for token, lang in output:
-            st.code(f"{token:<10} → {lang}", language="text")
+        for word, langs in results:
+            st.code(
+                f"{word:<15} → {', '.join(langs)}",
+                language="text"
+            )
+
+st.caption(
+    "Model: Character-level Naive Bayes | Output reflects linguistic ambiguity"
+)
