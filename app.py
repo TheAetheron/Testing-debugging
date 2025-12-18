@@ -2,7 +2,6 @@ import streamlit as st
 import joblib
 import pandas as pd
 
-# Load model & vectorizer
 @st.cache_resource
 def load_model():
     model = joblib.load("lang_nb_model.pkl")
@@ -72,7 +71,7 @@ def detect_with_smoothing(text):
     return smooth_predictions(results)
 
 
-# ---------------- UI ----------------
+# UI
 
 st.set_page_config(page_title="Multilingual Language Detection", layout="centered")
 
@@ -92,6 +91,5 @@ if st.button("Detect Language"):
 
         st.subheader("Detection Result")
 
-        # Display exactly like console output
         for token, lang in output:
             st.code(f"{token:<10} → {lang}", language="text")
