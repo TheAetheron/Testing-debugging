@@ -56,10 +56,6 @@ st.markdown(
 This application detects the **most likely language of each word**
 using a **character n-gram Naive Bayes model**.
 
-The system is designed to be **conservative and transparent**:
-- Shows probabilities
-- Flags ambiguity
-- Rejects low-confidence predictions
 """
 )
 
@@ -69,7 +65,7 @@ user_input = st.text_area(
     height=120
 )
 
-predict_clicked = st.button("🔍 Predict")
+predict_clicked = st.button("🔍 Detect")
 
 if user_input:
     results = detect_words(user_input)
