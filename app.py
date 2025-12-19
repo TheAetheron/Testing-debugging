@@ -7,7 +7,7 @@ import joblib
 # ======================
 model = joblib.load("lang_nb_model.pkl")
 vectorizer = joblib.load("lang_vectorizer.pkl")
-classes = joblib.load("lang_classes.pkl")
+classes = model.classes_
 
 # ======================
 # Helper functions
