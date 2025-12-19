@@ -103,22 +103,24 @@ if user_input:
                     )
                     chart = (
                         alt.Chart(df_probs)
-                        .mark_bar(size=12)
+                        .mark_bar()
                         .encode(
                              y=alt.Y(
                                 "Language:N",
                                 sort="-x",                     # highest prob on top
-                                axis=alt.Axis(labelAngle=0)    # normal horizontal labels
+                                axis=alt.Axis(title=0)    # normal horizontal labels
                             ),
                             x=alt.X(
                                 "Probability:Q",
-                                scale=alt.Scale(domain=[0, 1]) # probability scale
+                                scale=alt.Axis(title="confidence", format=".2f") # probability scale
                             ),
                             tooltip=["Language", "Probability"]
                         )
                         .properties(height=120)
                     )
 
+                    
+                    st.altair_chart(chart, use_container_width=True)
 
         st.markdown("## 📊 Summary")
         st.write(f"Known words: **{known_count}**")
